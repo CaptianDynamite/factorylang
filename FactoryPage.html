@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Factory Language</title>
+    <link rel="stylesheet" href="FactoryPage.css">
+  </head>
+  <body>
+    <!--<canvas id="factory-view"> </canvas>-->
+    <h1>Factory</h1>
+    <p></p>
+    <script src="FactoryLibrary.js"></script>
+    <script>
+      const producer1id = 0
+      const producer2id = 1
+      const beltLine1Id1 = 11
+      const beltLine1Id2 = 12
+      const beltLine1Id3 = 13
+      const beltLine1Id4 = 14
+      const beltLine2Id1 = 21
+      const beltLine2Id2 = 22
+      const addId = 30
+      const consoleId = 100
+
+      const producer1 = new ProducerTestMachine(producer1id, new Coordinate2D(10, 10), Direction.SOUTH, beltLine1Id1, 5)
+      const producer2 = new ProducerTestMachine(producer2id, new Coordinate2D(11, 10), Direction.SOUTH, beltLine2Id1, 6)
+
+      const beltLine1 = [
+          new Belt(beltLine1Id1, new Coordinate2D(10, 11), Direction.WEST, beltLine1Id2),
+          new Belt(beltLine1Id2, new Coordinate2D(11, 11), Direction.SOUTH, beltLine1Id3),
+          new Belt(beltLine1Id3, new Coordinate2D(11, 12), Direction.EAST, beltLine1Id4),
+          new Belt(beltLine1Id4, new Coordinate2D(10, 12), Direction.SOUTH, addId)
+      ]
+      const beltLine2 = [
+          new Belt(beltLine2Id1, new Coordinate2D(11, 11), Direction.SOUTH, beltLine2Id2),
+          new Belt(beltLine2Id2, new Coordinate2D(11, 12), Direction.SOUTH, addId)
+      ]
+      const addMachine = new AddMachine(addId, new Coordinate2D(10, 13), Direction.SOUTH, consoleId)
+      const consoleLog = new ConsoleOutputTestMachine(consoleId, new Coordinate2D(10, 14), Direction.SOUTH)
+
+      for (let i = 0; i < 10; i++) {
+          let deltaState = {}
+          producer1.updateTick(deltaState)
+          producer2.updateTick(deltaState)
+          for (let belt of beltLine1) {
+              belt.updateTick(deltaState)
+          }
+          for (let belt of beltLine2) {
+              belt.updateTick(deltaState)
+          }
+          addMachine.updateTick(deltaState)
+          consoleLog.updateTick(deltaState)
+
+
+          let str = `Step ${i}: {`
+          for (let key in deltaState) {
+              str += `${key}: ${deltaState[key]}, `
+          }
+          str += "}"
+          console.log(str)
+
+      }
+
+    </script>
+  </body>
+</html>
