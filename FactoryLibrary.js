@@ -1,100 +1,82 @@
-class ProducerTestMachine {
+class Machine {
     #id
-    #coordinate
-    #direction
-    #toMachineId
-
-    #toProduce
-
-    constructor(id, coordinate, direction, toMachineId, toProduce) {
+    #boundingBox
+    #inputs
+    #outputs
+    constructor(id, boundingBox, inputs, outputs) {
         this.#id = id
-        this.#coordinate = coordinate
-        this.#direction = direction
-        this.#toMachineId = toMachineId
-
-        this.#toProduce = toProduce
+        this.#boundingBox = boundingBox
+        this.#inputs = inputs
+        this.#outputs = outputs
     }
-
-    updateTick(deltaState) {
-        let to = deltaState[this.#toMachineId]
-        if (!to) deltaState[this.#toMachineId] = []
-        deltaState[this.#toMachineId].push(this.#toProduce)
-    }
-}
-
-class ConsoleOutputTestMachine {
-    #id
-    #coordinate
-    #direction
-
-    constructor(id, coordinate, direction) {
-        this.#id = id
-        this.#coordinate = coordinate
-        this.#direction = direction
-    }
-
-    updateTick(deltaState) {
-        let toLog = deltaState[this.#id]
-        if (toLog) console.log(toLog)
-    }
-}
-
-class Belt {
-    #id
-    #coordinate
-    #direction
-    #toMachineId
-
-    #content
-
-    constructor(id, coordinate, direction, toMachineId) {
-        this.#id = id
-        this.#coordinate = coordinate
-        this.#direction = direction
-        this.#toMachineId = toMachineId
-
-        this.#content = {}
-    }
-
-    updateTick(deltaState) {
-        if (this.#content) {
-            let to = deltaState[this.#toMachineId]
-            if (!to) deltaState[this.#toMachineId] = []
-            deltaState[this.#toMachineId].push(this.#content)
+    updateTick(deltaState, runOnInput) {
+        for (const input of this.#inputs) {
+            input.updateTick(deltaState)
         }
-        let self = deltaState[this.#id]
-        if (self) this.#content = self
+        for (const output of this.#inputs) {
+            output.updateTick(deltaState)
+        }
+    }
+
+    #allInputsReady() {
+        return this.#inputs.reduce((accumulator, next) => accumulator && next.hasInputReady())
+    }
+
+    #allOutputsReady() {
+        return this.#outputs.reduce((accumulator, next) => accumulator && next.acceptingOutput())
     }
 }
-
-class AddMachine {
+class Input {
     #id
-    #coordinate
+    #relativeCoordinate
     #direction
-    #toMachineId
-
-    #contents = []
-
-    constructor(id, coordinate, direction, toMachineId) {
+    #contents = null
+    constructor(id, relativeCoordinate, direction) {
         this.#id = id
-        this.#coordinate = coordinate
+        this.#relativeCoordinate = relativeCoordinate
         this.#direction = direction
-        this.#toMachineId = toMachineId
     }
 
     updateTick(deltaState) {
-        let self = deltaState[this.#id]
-        if (self) this.#contents.push(self)
-
-        if (this.#contents.length !== 2) {
-            return
+        if (!this.hasInputReady()) {
+            const item = deltaState[this.#id]
+            if (item) {
+                this.#contents = item
+            } else {
+                this.#contents = null
+            }
         }
-        const sum = this.#contents[0] + this.#contents[1]
-        let to = deltaState[this.#toMachineId]
-        if (!to) deltaState[this.#toMachineId] = []
-        deltaState[this.#toMachineId].push(sum)
+    }
 
-        this.#contents = []
+    hasInputReady() {
+        return this.#contents !== null
+    }
+}
+class Output {
+    #id
+    #relativeCoordinate
+    #direction
+    #connectedMachine
+    #contents = null
+    constructor(id, relativeCoordinate, direction) {
+        this.#id = id
+        this.#relativeCoordinate = relativeCoordinate
+        this.#direction = direction
+    }
+
+    updateTick(deltaState) {
+        if (this.acceptingOutput()) {
+            deltaState[this.#connectedMachine] = this.#contents
+            this.#contents = null
+        }
+    }
+
+    acceptingOutput() {
+        return this.#contents === null
+    }
+
+    setOutputItem(item) {
+        this.#contents = item
     }
 }
 
@@ -106,12 +88,12 @@ class Coordinate2D {
         this.y = y
     }
 
-    getX() {
-        return this.x
+    get x() {
+        return this.#x
     }
 
-    getY() {
-        return this.y
+    get y() {
+        return this.#y
     }
 
     toString() {
@@ -119,13 +101,18 @@ class Coordinate2D {
     }
 }
 
+class BoundingBox {
+    #northwestCorner
+    #southeastCorner
+    constructor(northwestCorner, southeastCorner) {
+        this.#northwestCorner = northwestCorner
+        this.#southeastCorner = southeastCorner
+    }
+}
+
 class Direction {
     static NORTH = 0
-    static NORTHEAST = 45
     static EAST = 90
-    static SOUTHEAST = 135
     static SOUTH = 180
-    static SOUTHWEST = 225
     static WEST = 270
-    static NORTHWEST = 315
 }
